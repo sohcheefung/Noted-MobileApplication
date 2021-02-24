@@ -25,6 +25,7 @@ import com.google.firebase.firestore.Query;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -116,7 +117,40 @@ public class MainActivity extends AppCompatActivity implements FirebaseAuth.Auth
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
+        MenuItem item = menu.findItem(R.id.action_search);
+        SearchView searchView = (SearchView) item.getActionView();
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String s) {
+                processSearch(s);
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String s) {
+                processSearch(s);
+                return false;
+            }
+        });
         return true;
+    }
+
+    private void processSearch(String s) {
+
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+        Query query = FirebaseFirestore.getInstance()
+                .collection("notes")
+                .whereEqualTo("userId", user.getUid())
+                .orderBy("text").startAt(s).endAt(s+"\uf8ff");
+
+        FirestoreRecyclerOptions<note> options = new FirestoreRecyclerOptions.Builder<note>()
+                .setQuery(query, note.class)
+                .build();
+
+        notesRecyclerAdapter = new NotesRecyclerAdapter(options, this);
+        recyclerView.setAdapter(notesRecyclerAdapter);
+        notesRecyclerAdapter.startListening();
     }
 
     @Override
